@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./hello_django
+    restart: always
+    command: sh -c "python manage.py migrate && python manage.py createsuperuser --noinput && gunicorn hello_django.wsgi:application --bind 0.0.0.0:8000"
+    environment:
+      - DJANGO_SUPERUSER_USERNAME=adm
+      - DJANGO_SUPERUSER_PASSWORD=admin
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+    volumes:
+      - ./hello_django/:/usr/src/hello_django/
+      - ./hello_django/static/:/usr/src/hello_django/static/
+    expose:
+      - 8000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+  db:
+    image: postgres:13.0-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=hello_django
+      - POSTGRES_PASSWORD=hello_django
+      - POSTGRES_DB=hello_django_dev
+  nginx:
+    build: ./nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./hello_django/static/:/usr/src/hello_django/static/
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
